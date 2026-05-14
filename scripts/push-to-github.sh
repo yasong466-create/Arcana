@@ -60,15 +60,21 @@ else
 fi
 
 echo ""
-echo "→ 正在推送到 GitHub（若失败请看下方说明）…"
-if git push -u origin main; then
+echo "→ 正在推送到 GitHub（已临时关闭 HTTP 代理环境变量，避免 127.0.0.1:7890 未开启 Clash 时失败）…"
+# 常见：本机设了 Clash 7890，但代理未运行时 Git 会连不上 GitHub
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy
+if git -c http.proxy= -c https.proxy= push -u origin main; then
   echo ""
   echo "完成。请在浏览器打开你的仓库，确认根目录有 package.json、src/app 等。"
   echo "再到 https://vercel.com/new 重新 Import 并 Deploy。"
 else
   echo ""
   echo "推送失败常见原因："
-  echo "  1) GitHub 需要登录：请用 GitHub Desktop，或配置 SSH，或使用 HTTPS + Personal Access Token。"
+  echo "  0) 仍走代理：执行 git config --global --list | grep -i proxy"
+  echo "     若有 http.https://github.com.proxy 等，可关闭："
+  echo "       git config --global --unset http.proxy"
+  echo "       git config --global --unset https.proxy"
+  echo "  1) GitHub 需要登录：HTTPS 需 Personal Access Token，或改用 SSH。"
   echo "  2) 远程仓库不是空的（例如先建了 README）：先执行"
   echo "       git pull origin main --rebase --allow-unrelated-histories"
   echo "     解决冲突后再 git push -u origin main"
