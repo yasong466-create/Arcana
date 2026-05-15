@@ -133,7 +133,7 @@ export function mockInterpretation(
           .filter((c) => c.card.element === "water" || c.card.suit === "cups")
           .map((c) => `「${c.card.nameZh}」${firstSentence(c.reversed ? c.card.reversedZh : c.card.uprightZh)}`)
           .join("") || perCard[0]?.text.slice(0, 80) || "请回到逐张牌义。"} 练习用「我需要…」替代「你应该…」，往往能让关系里的刺变软。`
-      : `情感向（顺带）：不必强行浪漫化。若问题本身与关系无关，可把这段当作自我照料——${firstSentence(cards[0]?.card.reversed ? cards[0].card.reversedZh : cards[0]?.card.uprightZh ?? "")}`;
+      : `情感向（顺带）：不必强行浪漫化。若问题本身与关系无关，可把这段当作自我照料——${firstSentence(cards[0]?.reversed ? cards[0].card.reversedZh : cards[0]?.card.uprightZh ?? "")}`;
 
   const career =
     domain === "career" || theme.includes("事业")
@@ -145,12 +145,12 @@ export function mockInterpretation(
 
   const action = `行动建议：① 用 8 分钟写下：此刻最真实的恐惧与渴望各一句；② 针对「${question.trim() || theme}」选一件 48 小时内可完成的小事去试；③ 若仍卡住，把牌阵拍照放在桌上三天，当作提醒而非命令。`;
 
+  const synthesisFull = [synthesis, conclusion, reminder].filter(Boolean).join("\n\n")
+
   return {
     overview,
     perCard,
-    synthesis,
-    conclusion,
-    reminder,
+    synthesis: synthesisFull,
     love,
     career,
     action,
