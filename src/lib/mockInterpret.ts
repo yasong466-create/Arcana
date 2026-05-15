@@ -1,107 +1,158 @@
-import type { DrawnCard, InterpretationPayload } from "@/types/tarot";
+import type { DrawnCard, InterpretationPayload, SpreadType } from "@/types/tarot";
+import {
+  bridgeCardToQuestion,
+  detectQuestionDomain,
+  formatCardHeadline,
+  questionHook,
+  spreadTimelineIntro,
+} from "@/lib/interpretStyle";
 
-const SLOT_HINT: Record<string, string> = {
-  过去: "这里谈的是已经写进你身体里的惯性、旧脚本，以及仍在隐隐作用的因。",
-  现在: "这里谈的是你此刻站着的地面：资源、盲点、情绪气候与正在发生的选择。",
-  未来: "这里谈的是能量若沿当前路径延展时，最可能出现的走向——可被改写，不是判决书。",
-  核心讯息: "这里直接指向你问题里最紧的那根弦，请优先回应它。",
-};
-
-function slotIntro(label: string): string {
-  return SLOT_HINT[label] ?? "此位置为牌阵中的一个面向，请结合牌义具体化。";
+function reversedLean(cards: DrawnCard[]): "mixed" | "mostly_up" | "mostly_rev" {
+  const rev = cards.filter((c) => c.reversed).length;
+  if (rev === 0) return "mostly_up";
+  if (rev >= Math.ceil(cards.length * 0.67)) return "mostly_rev";
+  return "mixed";
 }
 
-function themeBridge(theme: string, element: string): string {
-  const t = theme.toLowerCase();
-  const el = element;
-  if (t.includes("情感") || t.includes("亲密")) {
-    return el === "water" || el === "cups"
-      ? "水象/圣杯能量与「感受、依附、疗愈」同频，可把解读往亲密与安全感上推半步。"
-      : "即便牌面偏理性或行动，也请点到关系里的「需要被如何对待」。";
+function buildConclusion(
+  domain: ReturnType<typeof detectQuestionDomain>,
+  question: string,
+  cards: DrawnCard[],
+): { conclusion: string; reminder?: string } {
+  const lean = reversedLean(cards);
+  const names = cards.map((c) => c.card.nameZh).join("、");
+  const last = cards[cards.length - 1];
+  const lastCore = last
+    ? last.reversed
+      ? last.card.reversedZh
+      : last.card.uprightZh
+    : "";
+
+  const hasHeavySwords = cards.some(
+    (c) => c.card.suit === "swords" && (c.card.nameZh.includes("九") || c.card.nameZh.includes("十")),
+  );
+  const hasDevil = cards.some((c) => c.card.nameZh === "恶魔");
+  const reminderParts: string[] = [];
+  if (hasHeavySwords) {
+    reminderParts.push(
+      "牌面里宝剑的「忧虑」成分偏重：筹备期或等待期容易失眠、反复脑补。请把焦虑当作信号，而不是预言。",
+    );
   }
-  if (t.includes("事业") || t.includes("价值")) {
-    return el === "fire" || el === "wands"
-      ? "火象/权杖与「野心、节奏、可见的推进」共振，可谈具体下一步。"
-      : "请把抽象牌义落到「如何被看见、如何交换价值」的日常语境。";
+  if (hasDevil) {
+    reminderParts.push(
+      "出现恶魔时，多象征强烈吸引、执念或难以放手的联结，未必等于传统意义上细水长流的伴侣形象，留意是否过度依赖。",
+    );
   }
-  if (t.includes("成长") || t.includes("疗愈")) {
-    return "把牌义读成「整合阴影—恢复主体性」的练习，而不是评判自我。";
+
+  let conclusion = "";
+  if (domain === "career") {
+    if (lean === "mostly_rev") {
+      conclusion = `结论：有机会，但需先拆掉限制性思维或流程上的卡点。牌组（${names}）显示并非「没戏」，而是「还没对齐」——尤其留意最后一张「${last?.card.nameZh}」所提示的：${firstSentence(lastCore)}`;
+    } else if (lean === "mostly_up") {
+      conclusion = `结论：胜算偏高。你已把球踢出去，牌面（${names}）整体偏顺畅；若问 offer/录用，多指向「有回音、能进入相对舒适的团队语境」，但仍取决于你面试后的具体沟通与选择。`;
+    } else {
+      conclusion = `结论：偏乐观，但中间会有等待或拉扯。请把「${last?.slot.labelZh}」的「${last?.card.nameZh}」当作时间线上的提示：${firstSentence(lastCore)}`;
+    }
+  } else if (domain === "love") {
+    if (lean === "mostly_rev") {
+      conclusion = `结论：关系里仍有拉扯，但并非全无可能。牌（${names}）显示需要先处理安全感与沟通方式，再谈「会不会在一起」。`;
+    } else {
+      conclusion = `结论：有机会走向更稳固的联结。牌面整体偏暖（${names}），但未必浪漫泛滥，可能多一点责任与规矩；请以「${last?.card.nameZh}」的意象衡量你能否接受这种节奏。`;
+    }
+  } else if (domain === "decision") {
+    conclusion =
+      lean === "mostly_rev"
+        ? `结论：倾向「可以，但别急着定论」。逆位较多时，先补齐信息与情绪整理，再行动更稳。`
+        : `结论：整体偏向「可以一试 / 值得推进」。牌（${names}）支持你把问题落地成具体一步，而不是停在想象里。`;
+  } else {
+    conclusion =
+      lean === "mostly_rev"
+        ? `结论：当前是整合与松绑期。牌（${names}）邀请你先调整内在叙事，外在结果会随后跟上。`
+        : `结论：能量整体偏开放。牌（${names}）支持你采取小而确定的行动，比空等更有用。`;
   }
-  if (t.includes("抉择") || t.includes("十字路口")) {
-    return "突出两条路各自的代价与滋养，而不是替用户做二选一判决。";
+
+  if (question.trim()) {
+    conclusion = conclusion.replace(
+      /^结论：/,
+      `结论（回应「${question.trim().slice(0, 36)}${question.length > 36 ? "…" : ""}」）：`,
+    );
   }
-  if (t.includes("灵性") || t.includes("象征")) {
-    return "允许象征与梦境式语言，但仍要锚回可感知的生活细节。";
-  }
-  return "把牌义与用户所选主题轻轻对齐，避免无关泛谈。";
+
+  return {
+    conclusion,
+    reminder: reminderParts.length ? reminderParts.join("\n") : undefined,
+  };
 }
 
-function chainSynthesis(cards: DrawnCard[]): string {
-  if (cards.length <= 1) {
-    return "单张牌把能量收束在一处：请把这张牌当作「此刻最诚实的镜子」，反复照见同一主题的不同层次。";
-  }
-  const names = cards.map((c) => c.card.nameZh);
-  const [a, b, c3] = cards;
-  if (cards.length === 3 && a && b && c3) {
-    const oa = a.reversed ? "逆" : "正";
-    const ob = b.reversed ? "逆" : "正";
-    const oc = c3.reversed ? "逆" : "正";
-    return `三张牌像一条河：「${names[0]}（${oa}）」在「${a.slot.labelZh}」埋下河床；「${names[1]}（${ob}）」在「${b.slot.labelZh}」决定水流如何转弯；「${names[2]}（${oc}）」在「${c3.slot.labelZh}」提示若继续此节奏，水面将倾向平静或汹涌。请比较三张牌的元素（${a.card.element}、${b.card.element}、${c3.card.element}）——同质会放大主题，异质则提示需要借力的外在面向。`;
-  }
-  return `多张牌并列时，先看「${names[0]}」与「${names[1] ?? ""}」之间是互相支撑还是拉扯：支撑则形成同一主题的加强版；拉扯则说明你内在有两个声音在谈判，解读要把这谈判说清楚。`;
+function firstSentence(text: string): string {
+  const s = text.split(/[。！？]/)[0]?.trim();
+  return s ? `${s}。` : text;
 }
 
 export function mockInterpretation(
   theme: string,
   question: string,
   cards: DrawnCard[],
+  spread: SpreadType = "single",
 ): InterpretationPayload {
-  const q = question.trim();
-  const qbit =
-    q.length > 0
-      ? `你写下的句子像一颗小石子投进水里：「${q.slice(0, 120)}${q.length > 120 ? "…" : ""}」。我会尽量让牌直接回应这句话里的动词与名词。`
-      : "你没有写下具体问题，我会围绕所选主题，把牌义落到「处境—情绪—能动之处」三层。";
+  const domain = detectQuestionDomain(theme, question);
+  const qHook = questionHook(domain, question);
 
-  const overviewParts = [
-    `围绕「${theme}」，${qbit}`,
-    themeBridge(theme, cards[0]?.card.element ?? "spirit"),
-    `牌面依次是：${cards
-      .map((d) => `${d.slot.labelZh}「${d.card.nameZh}」${d.reversed ? "逆位" : "正位"}`)
+  const overview = [
+    spreadTimelineIntro(spread, cards.length),
+    qHook,
+    `围绕主题「${theme}」，牌面依次是：${cards
+      .map((d) => formatCardHeadline(d))
       .join("；")}。`,
-    "下面把每一张牌放在它该在的位置里读——不是标签，而是可试穿的隐喻。",
-  ];
-  const overview = overviewParts.join("");
+  ].join("");
 
   const perCard = cards.map((d) => {
-    const o = d.reversed ? "逆位" : "正位";
-    const core = d.reversed ? d.card.reversedZh : d.card.uprightZh;
+    const head = formatCardHeadline(d);
+    const bridge = bridgeCardToQuestion(d, domain);
     const other = d.reversed ? d.card.uprightZh : d.card.reversedZh;
-    const hint = slotIntro(d.slot.labelZh);
-    const kw = d.card.keywords.join("、");
     return {
       slot: d.slot.labelZh,
-      title: `${d.card.nameZh} · ${o}`,
-      text: `「${d.slot.labelZh}」：${hint} 这张 ${d.card.nameEn} 以 ${o} 出现，本次牌义核心是：${core} 另一面向（${d.reversed ? "正位" : "逆位"}）可作背景理解：${other} 关键词「${kw}」与元素「${d.card.element}」提示：把感受写进身体记忆里的是哪些瞬间？若与「${theme}」并置，它正在轻轻推你做的一件事是什么？`,
+      title: `${d.card.nameZh} · ${d.reversed ? "逆位" : "正位"}`,
+      text: `${head} —— ${bridge} 若仍觉得抽象，可把另一面向（${d.reversed ? "正位" : "逆位"}）当作背景：${firstSentence(other)}`,
     };
   });
 
-  const synthesis = `${chainSynthesis(cards)} 同时请留意：牌义之间若出现「快与慢」「收与放」的对比，往往不是要你二选一，而是邀请你在不同时间表上同时照顾两个需要。`;
+  const { conclusion, reminder } = buildConclusion(domain, question, cards);
 
-  const love = `从牌面元素与关键词看情感面向：${cards
-    .map((d) => {
-      const c = d.reversed ? d.card.reversedZh : d.card.uprightZh;
-      return `「${d.card.nameZh}」暗示 ${c.slice(0, 40)}…`;
-    })
-    .join("")} 练习用一句「我需要…」替代「你应该…」，往往能让关系里的刺变软。`;
+  const synthesis = [
+    "牌与牌之间：",
+    cards.length >= 3
+      ? `从「${cards[0]?.card.nameZh}」到「${cards[cards.length - 1]?.card.nameZh}」，像一条时间河——前者埋下河床，中间决定转弯方式，后者提示水面倾向平静还是汹涌。`
+      : `多张牌并列时，先看它们是互相加强同一主题，还是在谈判两个内在声音。`,
+    "同质元素会放大感受（例如圣杯叠圣杯更偏情绪），异质则提示你需要借力的外在面向（例如权杖配星币＝行动要落地）。",
+  ].join("");
 
-  const career = `从行动与自我价值角度：${cards
-    .map((d) => {
-      const c = d.reversed ? d.card.reversedZh : d.card.uprightZh;
-      return `「${d.card.nameZh}」指向 ${c.slice(0, 40)}…`;
-    })
-    .join("")} 把注意力放在「本周能完成的最小可见一步」，比空泛立志更贴合当前牌组。`;
+  const love =
+    domain === "love" || theme.includes("情感")
+      ? `情感向：${cards
+          .filter((c) => c.card.element === "water" || c.card.suit === "cups")
+          .map((c) => `「${c.card.nameZh}」${firstSentence(c.reversed ? c.card.reversedZh : c.card.uprightZh)}`)
+          .join("") || perCard[0]?.text.slice(0, 80) || "请回到逐张牌义。"} 练习用「我需要…」替代「你应该…」，往往能让关系里的刺变软。`
+      : `情感向（顺带）：不必强行浪漫化。若问题本身与关系无关，可把这段当作自我照料——${firstSentence(cards[0]?.card.reversed ? cards[0].card.reversedZh : cards[0]?.card.uprightZh ?? "")}`;
 
-  const action = `结合抽到的关键词 ${[...new Set(cards.flatMap((d) => d.card.keywords))].slice(0, 5).join("、")}：① 今晚用 8 分钟写下：此刻我最真实的恐惧与渴望各一句；② 明天选一件小事，用「权杖式」推进或「圣杯式」修复去试；③ 若仍卡住，把牌阵拍照放在桌上三天，当作提醒而非命令。`;
+  const career =
+    domain === "career" || theme.includes("事业")
+      ? `事业向：${cards
+          .filter((c) => c.card.suit === "wands" || c.card.suit === "pentacles")
+          .map((c) => `「${c.card.nameZh}」${firstSentence(c.reversed ? c.card.reversedZh : c.card.uprightZh)}`)
+          .join("") || "请关注「可见的一步」：更新简历、复盘面试、或主动跟进 HR。"} 把注意力放在本周能完成的最小可见进展，比空泛立志更贴合牌组。`
+      : `事业向（顺带）：${firstSentence(cards.find((c) => c.card.suit === "pentacles")?.card.uprightZh ?? cards[0]?.card.uprightZh ?? "")} 若与职场无关，可理解为「如何把精力换成可持续的成果」。`;
 
-  return { overview, perCard, synthesis, love, career, action };
+  const action = `行动建议：① 用 8 分钟写下：此刻最真实的恐惧与渴望各一句；② 针对「${question.trim() || theme}」选一件 48 小时内可完成的小事去试；③ 若仍卡住，把牌阵拍照放在桌上三天，当作提醒而非命令。`;
+
+  return {
+    overview,
+    perCard,
+    synthesis,
+    conclusion,
+    reminder,
+    love,
+    career,
+    action,
+  };
 }
