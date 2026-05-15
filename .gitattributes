@@ -1,0 +1,2 @@
+# 韦特牌面 JPEG（约 78 张，用 Git LFS 上传）
+public/cards/*.jpg filter=lfs diff=lfs merge=lfs -text
