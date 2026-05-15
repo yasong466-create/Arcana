@@ -141,14 +141,21 @@ export function OracleFlow() {
                   </button>
                 ))}
               </div>
-              <button
-                type="button"
-                disabled={!g.themeId}
-                onClick={() => g.setPhase("spread")}
-                className="mx-auto w-full max-w-xs rounded-full bg-gradient-to-r from-amber-200/90 to-violet-200/90 py-3 text-sm font-medium text-zinc-900 shadow-[0_0_40px_rgba(212,175,55,0.25)] disabled:opacity-40"
+              <motion.div
+                className="flex w-full justify-center px-2"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
               >
-                继续
-              </button>
+                <button
+                  type="button"
+                  disabled={!g.themeId}
+                  onClick={() => g.setPhase("spread")}
+                  className="w-full max-w-xs rounded-full bg-gradient-to-r from-amber-200/90 to-violet-200/90 py-3 text-sm font-medium text-zinc-900 shadow-[0_0_40px_rgba(212,175,55,0.25)] disabled:opacity-40"
+                >
+                  继续
+                </button>
+              </motion.div>
             </motion.section>
           ) : null}
 
@@ -371,14 +378,16 @@ export function OracleFlow() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={!doneDraw}
-                onClick={() => void finishToResult()}
-                className="mx-auto w-full max-w-xs rounded-full bg-gradient-to-r from-amber-200/90 to-violet-200/90 py-3 text-sm font-medium text-zinc-900 disabled:opacity-40"
-              >
-                生成 AI 解读
-              </button>
+              <div className="flex w-full justify-center px-2">
+                <button
+                  type="button"
+                  disabled={!doneDraw}
+                  onClick={() => void finishToResult()}
+                  className="w-full max-w-xs rounded-full bg-gradient-to-r from-amber-200/90 to-violet-200/90 py-3 text-sm font-medium text-zinc-900 disabled:opacity-40"
+                >
+                  生成 AI 解读
+                </button>
+              </div>
             </motion.section>
           ) : null}
 
