@@ -98,6 +98,7 @@ export function TarotGameProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           themeLabel,
+          themeId,
           question,
           spread,
           cards: draws,
@@ -108,7 +109,7 @@ export function TarotGameProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoadingAi(false);
     }
-  }, [draws, question, spread, themeLabel]);
+  }, [draws, question, spread, themeId, themeLabel]);
 
   const value: GameCtx = {
     phase,

@@ -17,14 +17,20 @@ const DECISION_RE = /会不会|能不能|能否|吗\s*$|吗？|是否/;
 export function detectQuestionDomain(
   themeLabel: string,
   question: string,
+  themeId?: string | null,
 ): QuestionDomain {
   const q = question.trim();
   const t = themeLabel;
-  if (CAREER_RE.test(q) || t.includes("事业")) return "career";
-  if (LOVE_RE.test(q) || t.includes("情感")) return "love";
-  if (DECISION_RE.test(q) || t.includes("抉择")) return "decision";
-  if (t.includes("成长") || t.includes("疗愈")) return "growth";
-  if (t.includes("灵性")) return "spirit";
+
+  if (themeId === "career" || t.includes("事业")) return "career";
+  if (themeId === "love" || t.includes("情感")) return "love";
+  if (themeId === "decision" || t.includes("抉择")) return "decision";
+  if (themeId === "growth" || t.includes("成长") || t.includes("疗愈")) return "growth";
+  if (themeId === "spirit" || t.includes("灵性")) return "spirit";
+
+  if (CAREER_RE.test(q)) return "career";
+  if (LOVE_RE.test(q)) return "love";
+  if (DECISION_RE.test(q)) return "decision";
   return "general";
 }
 

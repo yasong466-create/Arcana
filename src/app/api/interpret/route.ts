@@ -16,16 +16,24 @@ function parseInterpretation(raw: string): InterpretationPayload {
 export async function POST(req: Request) {
   const body = (await req.json()) as {
     themeLabel: string;
+    themeId?: string | null;
     question: string;
     spread: SpreadType;
     cards: DrawnCard[];
   };
 
+  const mock = () =>
+    mockInterpretation(
+      body.themeLabel,
+      body.question,
+      body.cards,
+      body.spread,
+      body.themeId,
+    );
+
   const key = process.env.OPENAI_API_KEY;
   if (!key) {
-    return NextResponse.json(
-      mockInterpretation(body.themeLabel, body.question, body.cards),
-    );
+    return NextResponse.json(mock());
   }
 
   try {
@@ -55,7 +63,7 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       return NextResponse.json(
-        mockInterpretation(body.themeLabel, body.question, body.cards),
+        mock(),
       );
     }
 
@@ -67,12 +75,10 @@ export async function POST(req: Request) {
       return NextResponse.json(parseInterpretation(raw));
     } catch {
       return NextResponse.json(
-        mockInterpretation(body.themeLabel, body.question, body.cards),
+        mock(),
       );
     }
   } catch {
-    return NextResponse.json(
-      mockInterpretation(body.themeLabel, body.question, body.cards),
-    );
+    return NextResponse.json(mock());
   }
 }

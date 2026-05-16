@@ -385,9 +385,9 @@ export function OracleFlow() {
                   onClick={() => void finishToResult()}
                   className="w-full max-w-xs rounded-full bg-gradient-to-r from-amber-200/90 to-violet-200/90 py-3 text-sm font-medium text-zinc-900 disabled:opacity-40"
                 >
-                  生成 AI 解读
+                  生成解读
                 </button>
-              </motion.div>
+              </div>
             </motion.section>
           ) : null}
 
