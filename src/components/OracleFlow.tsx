@@ -118,7 +118,7 @@ export function OracleFlow() {
                   选择你的占卜主题
                 </h1>
                 <p className="mt-2 text-sm text-zinc-400">
-                  像把一枚月亮投进井里——主题会改变牌面的回声。
+                  像把一枚月亮投进井里——主题会改变牌面的回声
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -231,7 +231,7 @@ export function OracleFlow() {
             >
               <div className="text-center">
                 <h2 className="font-serif text-2xl text-amber-50">轻轻说出你的问题</h2>
-                <p className="mt-2 text-sm text-zinc-400">可以简短，也可以私密；留白亦可。</p>
+                <p className="mt-2 text-sm text-zinc-400">可以简短，可以私密，留白亦可</p>
               </div>
               <textarea
                 value={g.question}
@@ -308,7 +308,7 @@ export function OracleFlow() {
               <div className="text-center">
                 <h2 className="font-serif text-2xl text-amber-50">抽牌</h2>
                 <p className="mt-2 text-sm text-zinc-400">
-                  轻触牌堆顶端，依次揭开 {total} 张牌位。
+                  轻触牌堆顶端，依次揭开 {total} 张牌位
                 </p>
               </div>
 

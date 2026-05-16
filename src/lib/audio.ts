@@ -35,50 +35,46 @@ export function playFlipSound(): void {
   osc.stop(t + 0.22);
 }
 
-/** Quieter cloth / table shuffle */
+/** 轻柔洗牌：短促、偏白噪质感 */
 export function playShuffleTick(): void {
   const c = getCtx();
   const t = c.currentTime;
   const noise = c.createBufferSource();
-  const buffer = c.createBuffer(1, c.sampleRate * 0.06, c.sampleRate);
+  const buffer = c.createBuffer(1, c.sampleRate * 0.08, c.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.22;
+  let brown = 0;
+  for (let i = 0; i < data.length; i++) {
+    const white = (Math.random() * 2 - 1) * 0.18;
+    brown = (brown + 0.04 * white) / 1.04;
+    data[i] = brown * 0.6 + white * 0.15;
+  }
   noise.buffer = buffer;
-  const filter = c.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 900;
+  const hp = c.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 120;
+  const lp = c.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 1400;
   const gain = c.createGain();
-  gain.gain.value = 0.035;
-  noise.connect(filter);
-  filter.connect(gain);
+  gain.gain.value = 0.028;
+  noise.connect(hp);
+  hp.connect(lp);
+  lp.connect(gain);
   gain.connect(c.destination);
   noise.start(t);
-  noise.stop(t + 0.07);
+  noise.stop(t + 0.08);
 }
 
-/** Kellet-style pink noise → 低频低通，像远处风声，不做刺耳音程。 */
-function createPinkNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
+/** 舒适放松向白噪音：棕噪 + 白噪混合，偏暖、不刺耳 */
+function createComfortWhiteNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
   const len = Math.floor(ctx.sampleRate * seconds);
   const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
   const out = buffer.getChannelData(0);
-  let b0 = 0;
-  let b1 = 0;
-  let b2 = 0;
-  let b3 = 0;
-  let b4 = 0;
-  let b5 = 0;
-  let b6 = 0;
+  let brown = 0;
   for (let i = 0; i < len; i++) {
     const white = Math.random() * 2 - 1;
-    b0 = 0.99886 * b0 + white * 0.0555179;
-    b1 = 0.99332 * b1 + white * 0.0750759;
-    b2 = 0.969 * b2 + white * 0.153852;
-    b3 = 0.8665 * b3 + white * 0.3104856;
-    b4 = 0.55 * b4 + white * 0.5329522;
-    b5 = -0.7616 * b5 - white * 0.016898;
-    const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-    b6 = white * 0.115926;
-    out[i] = pink * 0.11;
+    brown = (brown + 0.018 * white) / 1.018;
+    out[i] = brown * 0.55 + white * 0.12;
   }
   return buffer;
 }
@@ -91,31 +87,43 @@ type Ambient = {
 
 let ambient: Ambient | null = null;
 
-const AMBIENT_BASE = 0.012;
+/** 环境白噪音基础音量（轻柔） */
+const AMBIENT_BASE = 0.022;
 
 export function startAmbientDrone(): void {
   if (ambient) return;
   const c = getCtx();
   const t = c.currentTime;
-  const buf = createPinkNoiseBuffer(c, 5.2);
+  const buf = createComfortWhiteNoiseBuffer(c, 8);
   const src = c.createBufferSource();
   src.buffer = buf;
   src.loop = true;
 
+  const hp = c.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.setValueAtTime(55, t);
+
   const lp = c.createBiquadFilter();
   lp.type = "lowpass";
-  lp.frequency.setValueAtTime(420, t);
-  lp.Q.setValueAtTime(0.4, t);
+  lp.frequency.setValueAtTime(680, t);
+  lp.Q.setValueAtTime(0.35, t);
+
+  const shelf = c.createBiquadFilter();
+  shelf.type = "highshelf";
+  shelf.frequency.setValueAtTime(2800, t);
+  shelf.gain.setValueAtTime(-8, t);
 
   const gain = c.createGain();
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(AMBIENT_BASE, t + 4);
+  gain.gain.exponentialRampToValueAtTime(AMBIENT_BASE, t + 3.5);
 
   const master = c.createGain();
   master.gain.value = 1;
 
-  src.connect(lp);
-  lp.connect(gain);
+  src.connect(hp);
+  hp.connect(lp);
+  lp.connect(shelf);
+  shelf.connect(gain);
   gain.connect(master);
   master.connect(c.destination);
   src.start(t);
