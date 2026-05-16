@@ -140,22 +140,22 @@ export function OracleFlow() {
                     <p className="mt-1 text-xs text-zinc-400">{t.sub}</p>
                   </button>
                 ))}
-              </div>
-              <motion.div
-                className="flex w-full justify-center px-2"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-              >
-                <button
-                  type="button"
-                  disabled={!g.themeId}
-                  onClick={() => g.setPhase("spread")}
-                  className="w-full max-w-xs rounded-full bg-gradient-to-r from-amber-200/90 to-violet-200/90 py-3 text-sm font-medium text-zinc-900 shadow-[0_0_40px_rgba(212,175,55,0.25)] disabled:opacity-40"
+                <motion.div
+                  className="w-full pt-2 sm:col-span-2"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
                 >
-                  继续
-                </button>
-              </motion.div>
+                  <button
+                    type="button"
+                    disabled={!g.themeId}
+                    onClick={() => g.setPhase("spread")}
+                    className="mx-auto block w-full max-w-sm rounded-full bg-gradient-to-r from-amber-200/90 to-violet-200/90 py-3 text-center text-sm font-medium text-zinc-900 shadow-[0_0_40px_rgba(212,175,55,0.25)] disabled:opacity-40 sm:max-w-md"
+                  >
+                    继续
+                  </button>
+                </motion.div>
+              </div>
             </motion.section>
           ) : null}
 
@@ -387,7 +387,7 @@ export function OracleFlow() {
                 >
                   生成 AI 解读
                 </button>
-              </div>
+              </motion.div>
             </motion.section>
           ) : null}
 
